@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>New Tab</title>
+  <link rel="icon" href="mark.png">
+  <link rel="stylesheet" href="internal.css">
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+  <header class="page-header">
+    <img src="logo.png" alt="Southbag">
+    <h2>Southbag Browser</h2>
+  </header>
+  <main>
+    <div id="incognito" class="incognito-banner" hidden>
+      <h2>You are Incognito<sup>*</sup></h2>
+      <p>History isn't saved. Cookies and site data are deleted when you close this window.</p>
+      <p class="fine-print">*Kevin can still see you. So can Palantir, your browsing fees, your employer, and anyone standing behind you.</p>
+    </div>
+
+    <h1 id="greeting" class="blurred">Welcome back.</h1>
+
+    <form id="searchForm" class="search card" autocomplete="off">
+      <h2>Southbag Search</h2>
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="Search the web (not Southbag)" aria-label="Southbag Search">
+        <button type="submit" class="btn-large btn-primary" data-track="search">Search</button>
+      </div>
+      <p class="fine-print">
+        Southbag Search is powered by <span id="engineName">a real search engine</span>, because ours is still in the planning phase.
+        <a href="southbag://settings/">Change engine</a>.
+        <button type="button" class="btn-small" id="unlucky" data-track="unlucky">I'm Feeling Unlucky</button>
+      </p>
+    </form>
+
+    <div id="promo" class="promo" hidden>
+      <span class="promo-tag">Sponsored by Southbag</span>
+      <h3 id="promoText"></h3>
+      <a id="promoLink" class="promo-link" href="#"></a>
+      <button type="button" id="promoDismiss" class="btn-small promo-dismiss" data-track="promo_dismiss" title="Dismiss">x</button>
+    </div>
+
+    <div class="columns">
+      <section class="card account">
+        <h2>Your Southbag account</h2>
+        <p class="balance-label">Available balance</p>
+        <p class="balance" id="balance">…</p>
+        <p class="muted" id="accountNote">Asking the bank. The bank is thinking about it.</p>
+        <ul class="list" id="transactions"></ul>
+        <p><a href="https://banking.southbag.cc/auth/onboard">Open Southbag Online Banking</a></p>
+      </section>
+
+      <section class="card rewards gold">
+        <h2>Southbag Rewards</h2>
+        <p class="points"><span id="points">0</span> <small>pts</small></p>
+        <p class="muted">Earned by spending time on Southbag sites. Redeemable for nothing.</p>
+        <p><button type="button" id="redeem" class="btn-large btn-primary" data-track="rewards_redeem">Redeem</button></p>
+        <p id="redeemResult" class="redeem-result" hidden></p>
+        <hr>
+        <h3>Browsing fees</h3>
+        <p id="fees" class="muted"></p>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Southbag apps</h2>
+      <div id="apps" class="apps"></div>
+    </section>
+
+    <div class="announcement-grid">
+      <h2>Important announcements</h2>
+      <div class="announcement-card">
+        <h3>Southbag Secure™</h3>
+        <p>Sites on southbag.cc are Verified Enterprise. The rest of the internet is, frankly, unvetted.</p>
+      </div>
+      <div class="announcement-card">
+        <h3>Ad blocker</h3>
+        <p>Southbag blocks other people's adverts so you can see ours.</p>
+      </div>
+      <div class="announcement-card">
+        <h3>Browsing fees</h3>
+        <p>Each page load costs one cent. It's how we keep the internet free.</p>
+      </div>
+      <div class="announcement-card">
+        <h3>Need help?</h3>
+        <p>Press "Ask Kevin". Kevin will not help, but he will be there.</p>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer">
+    Southbag Global Enterprise Network. This tab may be monitored for quality and compliance purposes.
+  </footer>
+  <script src="internal.js"></script>
+  <script src="newtab.js"></script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+.incognito-banner {
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  border: 4px double #ba68c8;
+  background: #2e1f4f;
+  color: #f3e5f5;
+}
+
+.incognito-banner h2 {
+  margin-top: 0;
+}
+
+#greeting {
+  font-size: 36px;
+}
+
+.search h2 {
+  margin: 0 0 10px;
+  color: var(--southbag-blue);
+}
+
+.search-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.search-row input {
+  flex: 1;
+  font-size: 22px;
+  padding: 12px 18px;
+  border: 2px solid var(--southbag-blue);
+  border-radius: 40px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2), 0 8px 18px rgba(0, 0, 0, 0.2);
+  outline: none;
+}
+
+.promo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 40px 12px 16px;
+  margin-bottom: 18px;
+  border: 3px dashed var(--southbag-orange);
+  background: repeating-linear-gradient(45deg, #fff8e1, #fff8e1 14px, #ffe0b2 14px, #ffe0b2 28px);
+  color: #000;
+}
+
+.promo h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.promo-tag {
+  font-size: 9px;
+  font-weight: bold;
+  color: #fff;
+  background: var(--southbag-orange);
+  padding: 1px 6px;
+}
+
+.promo-link {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.promo-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.balance-label {
+  margin: 0;
+  color: var(--southbag-muted);
+}
+
+.balance {
+  margin: 4px 0;
+  font-size: 44px;
+  font-weight: bold;
+  color: var(--southbag-blue);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.balance.negative {
+  color: var(--southbag-danger);
+}
+
+.points {
+  font-size: 44px;
+  margin: 4px 0;
+  font-weight: bold;
+  color: #8a6d00;
+}
+
+.redeem-result {
+  font-weight: bold;
+  color: var(--southbag-blue);
+}
+
+.apps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.app-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  text-decoration: none;
+  color: #3b2b00;
+  border: 1px solid var(--southbag-gold);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--southbag-gold-light), #f5d76e);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  font-size: 16px;
+}
+
+.app-tile img {
+  height: 26px;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.app-tile small {
+  font-size: 10px;
+  color: #6d5600;
+}

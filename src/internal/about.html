@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>About Southbag Browser</title>
+  <link rel="icon" href="mark.png">
+  <link rel="stylesheet" href="internal.css">
+</head>
+<body>
+  <header class="page-header">
+    <img src="logo.png" alt="Southbag">
+    <h2>About</h2>
+  </header>
+  <main>
+    <h1 class="blurred">Southbag Browser</h1>
+    <p>The official web browser of the Southbag Global Enterprise Network.</p>
+    <section class="card">
+      <h2>Version</h2>
+      <p>Southbag Browser <strong id="version"></strong>. <span class="muted">You are on the latest version. There is only one version. Kevin approved it.</span></p>
+      <ul class="list" id="versions"></ul>
+      <div class="row">
+        <button type="button" id="update" class="btn-large btn-primary" data-track="check_updates">Check for updates</button>
+        <span id="updateResult" class="muted"></span>
+      </div>
+    </section>
+    <section class="card">
+      <h2 id="shortcuts">Keyboard shortcuts</h2>
+      <ul class="list" id="keys"></ul>
+    </section>
+    <section class="card">
+      <h2>Legal</h2>
+      <p class="fine-print">
+        Southbag Browser is built on Chromium and Electron, which are not Southbag. Released into the public domain (Unlicense).
+        No warranty is provided. Southbag Secure™ is a badge, not a security guarantee; real certificate checks are done by Chromium.
+        Browsing fees are charged in Southbag money, which is not money. Southbag Rewards have no cash value, no non-cash value, and no value.
+      </p>
+      <p><a href="https://github.com/SouthbagHQ/browser">Source code</a> · <a href="https://support.southbag.cc/">Southbag Support</a> · <a href="https://branch-locator.southbag.cc/">Find a branch</a></p>
+    </section>
+  </main>
+  <footer class="site-footer">Southbag Global Enterprise Network. Kevin is watching.</footer>
+  <script src="internal.js"></script>
+  <script src="about.js"></script>
+</body>
+</html>

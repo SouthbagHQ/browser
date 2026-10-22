@@ -1,0 +1,103 @@
+{
+  "name": "southbag-browser",
+  "productName": "Southbag Browser",
+  "version": "1.0.0",
+  "description": "The official web browser of the Southbag Global Enterprise Network.",
+  "main": "src/main/main.js",
+  "desktopName": "southbag-browser.desktop",
+  "private": true,
+  "homepage": "https://southbag.cc",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SouthbagHQ/browser.git"
+  },
+  "author": {
+    "name": "Southbag Global Enterprise Network",
+    "email": "engineering@southbag.cc"
+  },
+  "license": "Unlicense",
+  "scripts": {
+    "start": "electron .",
+    "check": "node scripts/check.js",
+    "test": "node --test test/*.test.js",
+    "dist": "electron-builder --publish never"
+  },
+  "build": {
+    "appId": "cc.southbag.browser",
+    "productName": "Southbag Browser",
+    "artifactName": "southbag-browser-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**",
+      "package.json"
+    ],
+    "protocols": [
+      {
+        "name": "Web page",
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "role": "Viewer"
+      }
+    ],
+    "fileAssociations": [
+      {
+        "ext": [
+          "html",
+          "htm",
+          "xhtml",
+          "shtml"
+        ],
+        "name": "HTML document",
+        "description": "HTML document (Not Southbag)",
+        "mimeType": "text/html",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ],
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Network;WebBrowser",
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "tar.gz"
+      ],
+      "mimeTypes": [
+        "application/xhtml+xml"
+      ],
+      "desktop": {
+        "entry": {
+          "Name": "Southbag Browser",
+          "GenericName": "Web Browser",
+          "StartupWMClass": "Southbag Browser",
+          "Keywords": "web;browser;internet;southbag;"
+        }
+      },
+      "maintainer": "Southbag Global Enterprise Network <engineering@southbag.cc>",
+      "synopsis": "Southbag's official enterprise web browser"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": null,
+      "extendInfo": {
+        "NSCameraUsageDescription": "Websites may ask to use your camera. Kevin will also be watching.",
+        "NSMicrophoneUsageDescription": "Websites may ask to use your microphone. Kevin will also be listening."
+      }
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  }
+}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bookmarks</title>
+  <link rel="icon" href="mark.png">
+  <link rel="stylesheet" href="internal.css">
+</head>
+<body>
+  <header class="page-header">
+    <img src="logo.png" alt="Southbag">
+    <h2>Bookmarks</h2>
+  </header>
+  <main>
+    <h1 class="blurred">Bookmarks</h1>
+    <section class="card gold">
+      <h2>Southbag bookmarks <span class="badge">Permanent</span></h2>
+      <p class="muted">Every Southbag app, on your bookmarks bar, forever. These cannot be removed.</p>
+      <ul class="list" id="southbag"></ul>
+    </section>
+    <section class="card">
+      <h2>Your bookmarks</h2>
+      <form id="addForm" class="row" autocomplete="off">
+        <input id="addTitle" type="text" placeholder="Title" size="24">
+        <input id="addUrl" type="url" placeholder="https://…" size="40" required>
+        <button type="submit" class="btn-small" data-track="bookmark_add">add bookmark</button>
+        <span id="addResult" class="muted"></span>
+      </form>
+      <ul class="list" id="mine"></ul>
+      <p id="empty" class="muted" hidden>No bookmarks of your own yet. Southbag has kindly provided some.</p>
+    </section>
+  </main>
+  <footer class="site-footer">Southbag Global Enterprise Network. This page may be monitored for quality and compliance purposes.</footer>
+  <script src="internal.js"></script>
+  <script src="bookmarks.js"></script>
+</body>
+</html>

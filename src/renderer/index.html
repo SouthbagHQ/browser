@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Southbag Browser</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="loading">
+  <!-- Login: the only way in. -->
+  <section id="login" class="view" hidden>
+    <header class="site-header">
+      <img class="site-logo" src="logo.png" alt="Southbag logo">
+      <h2>Southbag Browser</h2>
+    </header>
+    <main class="login-main">
+      <h1>Welcome to Southbag Browser</h1>
+      <p>You must log in with your Southbag account before you can browse the web. The web is a privilege, not a right.</p>
+      <p id="pendingNotice" class="pending-notice" hidden></p>
+
+      <div class="announcement-grid">
+        <h2>Important announcements</h2>
+        <div class="announcement-card">
+          <h3>Mandatory login</h3>
+          <p>No tabs until Southbag Identity has verified you. Logging out closes every tab in every window.</p>
+        </div>
+        <div class="announcement-card">
+          <h3>Southbag Secure™</h3>
+          <p>Southbag sites are Verified Enterprise. Everything else is the open web, and we will remind you.</p>
+        </div>
+        <div class="announcement-card">
+          <h3>Monitoring</h3>
+          <p>Your usage is observed by Palantir for quality and compliance purposes. Never what you browse. Just that you do.</p>
+        </div>
+        <div class="announcement-card">
+          <h3>Windows</h3>
+          <p>Windows is not supported. Please visit a branch.</p>
+        </div>
+      </div>
+
+      <form id="loginForm">
+        <p id="loginStatus" class="login-status" role="status"></p>
+        <button type="submit" id="loginButton" class="btn-large" data-track="login">Log in with Southbag Identity</button>
+        <button type="button" id="cancelButton" class="btn-small" data-track="login_cancel" hidden>cancel</button>
+        <button type="button" class="btn-small" data-track="confused" data-href="https://support.southbag.cc/ai">Confused?</button>
+      </form>
+
+      <div id="offlinePanel" class="recovery-panel" hidden>
+        <h3>We couldn't reach Southbag Identity</h3>
+        <p>Your account can't be verified, so no browser for you. Check your connection and try again. (Yes, we see the irony.)</p>
+        <button type="button" id="retryButton" class="btn-large" data-track="offline_retry">Try again</button>
+      </div>
+
+      <button type="button" class="btn-large" data-track="find_branch" data-href="https://branch-locator.southbag.cc">Give up and find a branch</button>
+    </main>
+    <footer class="site-footer">
+      <p><button type="button" class="btn-small" data-track="security_bounty" data-href="https://support.southbag.cc/ai">Security Bounty</button></p>
+      <p><button type="button" class="btn-large" data-track="chat_with_human" data-href="https://support.southbag.cc/ai">Chat with a Human</button></p>
+    </footer>
+  </section>
+
+  <!-- The browser. -->
+  <section id="app" class="view" hidden>
+    <header class="tabstrip">
+      <img class="app-logo" src="logo.png" alt="Southbag">
+      <span class="incognito-badge" title="*Kevin can still see you">Incognito<sup>*</sup></span>
+      <nav id="tabs" class="tabs" role="tablist" aria-label="Tabs"></nav>
+      <button type="button" id="newTab" class="btn-new-tab" title="New tab" data-track="new_tab_button">+</button>
+      <div class="account">
+        <span id="accountName" class="account-name"></span>
+        <button type="button" id="logoutButton" class="btn-small" data-track="logout">log out</button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <button type="button" id="backButton" class="nav-button btn-small" title="Back" data-track="back">◀</button>
+      <button type="button" id="forwardButton" class="nav-button btn-small" title="Forward" data-track="forward">▶</button>
+      <button type="button" id="reloadButton" class="nav-button btn-small" title="Reload" data-track="reload">⟳</button>
+      <button type="button" id="homeButton" class="nav-button btn-small" title="Home" data-track="home">⌂</button>
+      <form id="omnibox" class="omnibox" autocomplete="off">
+        <button type="button" id="padlock" class="padlock" data-track="padlock">…</button>
+        <input id="address" type="text" spellcheck="false" list="suggestions"
+               placeholder="Search Southbag Search or type a URL" aria-label="Address and search bar">
+        <datalist id="suggestions"></datalist>
+        <button type="button" id="starButton" class="star btn-small" title="Bookmark this page" data-track="star">☆</button>
+        <button type="button" id="privacyButton" class="privacy btn-small" title="Privacy" data-track="privacy">Privacy</button>
+      </form>
+      <button type="button" id="kevinButton" class="kevin-button btn-large" title="Ask Kevin" data-track="kevin_button">Ask Kevin</button>
+      <button type="button" id="menuButton" class="menu-button btn-small" title="Menu" data-track="app_menu">⋮</button>
+    </div>
+
+    <nav id="bookmarksBar" class="bookmarks-bar" aria-label="Bookmarks"></nav>
+
+    <div id="findBar" class="find-bar" hidden>
+      <label for="findInput">Find on page</label>
+      <input id="findInput" type="text" spellcheck="false">
+      <span id="findCount" class="find-count"></span>
+      <button type="button" id="findPrev" class="btn-small" data-track="find_prev" title="Previous">▲</button>
+      <button type="button" id="findNext" class="btn-small" data-track="find_next" title="Next">▼</button>
+      <button type="button" id="findClose" class="btn-small" data-track="find_close" title="Close">x</button>
+    </div>
+
+    <div class="workspace">
+      <main id="content" class="content">
+        <img id="snapshot" class="snapshot" alt="" hidden>
+
+        <div id="blocker" class="blocker" hidden>
+          <!-- Southbag Secure™: the open web. -->
+          <div id="unsafePanel" class="blocker-panel unsafe" hidden>
+            <img class="blocker-logo" src="logo.png" alt="">
+            <h1>Not Southbag (Unsafe)</h1>
+            <p class="blocker-lead"><strong id="unsafeSite"></strong> is part of the open web.</p>
+            <p>It is not operated, audited or approved by the Southbag Global Enterprise Network. It may contain opinions, competitors, adverts (blocked) and other content that Kevin cannot vouch for.</p>
+            <p class="blocker-url" id="unsafeUrl"></p>
+            <div class="blocker-actions">
+              <button type="button" id="unsafeBack" class="btn-large" data-track="unsafe_back">Back to safety</button>
+              <button type="button" id="unsafeAccept" class="btn-small" data-track="unsafe_accept">I accept the risk of using the open web</button>
+            </div>
+            <p class="fine-print">You will be warned once per site, per session. Your acceptance has been noted on your permanent record.</p>
+          </div>
+
+          <!-- A real TLS problem. Not a joke. -->
+          <div id="certPanel" class="blocker-panel cert" hidden>
+            <h1>Your connection is not private</h1>
+            <p class="blocker-lead">This is a real certificate error, not a Southbag joke.</p>
+            <p>Attackers might be trying to steal your information from <strong id="certHost"></strong> (for example, passwords, messages or credit cards).</p>
+            <p class="cert-code" id="certCode"></p>
+            <dl class="cert-details" id="certDetails"></dl>
+            <div class="blocker-actions">
+              <button type="button" id="certBack" class="btn-large" data-track="cert_back">Back to safety</button>
+              <button type="button" id="certAdvanced" class="btn-small" data-track="cert_advanced">Advanced</button>
+            </div>
+            <div id="certAdvancedPanel" hidden>
+              <p>The server could not prove that it is <strong id="certHost2"></strong>; its security certificate is not trusted. This may be caused by a misconfiguration or an attacker intercepting your connection.</p>
+              <button type="button" id="certProceed" class="btn-small danger" data-track="cert_proceed">Proceed to <span id="certHost3"></span> (unsafe)</button>
+            </div>
+          </div>
+
+          <div id="networkPanel" class="blocker-panel network" hidden>
+            <h1>Southbag Browser can't reach this page</h1>
+            <p class="blocker-lead" id="networkHost"></p>
+            <p class="cert-code" id="networkCode"></p>
+            <p>Try checking the connection, the address, and your account balance.</p>
+            <div class="blocker-actions">
+              <button type="button" id="networkRetry" class="btn-large" data-track="network_retry">Try again</button>
+              <button type="button" class="btn-small" data-track="network_branch" data-href="https://branch-locator.southbag.cc">Visit a branch instead</button>
+            </div>
+          </div>
+
+          <div id="crashPanel" class="blocker-panel network" hidden>
+            <h1>Aw, Southbag</h1>
+            <p class="blocker-lead">This tab has gone to a branch and has not come back.</p>
+            <p class="cert-code" id="crashCode"></p>
+            <div class="blocker-actions">
+              <button type="button" id="crashReload" class="btn-large" data-track="crash_reload">Reload</button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <aside id="kevin" class="kevin" hidden aria-label="Kevin, Southbag Support">
+        <header class="kevin-header">
+          <h3>Kevin <small>Southbag Support</small></h3>
+          <button type="button" id="kevinClose" class="btn-small" data-track="kevin_close" title="Close">x</button>
+        </header>
+        <div id="kevinLog" class="kevin-log" role="log" aria-live="polite"></div>
+        <button type="button" id="kevinSummarise" class="btn-large" data-track="kevin_summarise"
+                title="Sends this page's visible text to Kevin. Only when you press it.">Summarise this page</button>
+        <form id="kevinForm" class="kevin-form">
+          <textarea id="kevinInput" rows="2" placeholder="Describe your problem. Kevin will judge you."></textarea>
+          <button type="submit" class="btn-small" data-track="kevin_send">send</button>
+        </form>
+        <p class="kevin-note">Kevin only sees this page if you press Summarise. He sees everything else anyway.</p>
+      </aside>
+    </div>
+
+    <footer class="status-bar">
+      <span id="statusMessage" class="status-message"></span>
+      <span id="statusHover" class="status-hover"></span>
+      <button type="button" id="statusSecurity" class="status-item" data-track="status_security"></button>
+      <span id="statusBlocked" class="status-item"></span>
+      <span id="statusFees" class="status-item fees"></span>
+      <span id="statusRewards" class="status-item rewards"></span>
+      <button type="button" id="statusZoom" class="status-item" data-track="status_zoom" hidden></button>
+      <button type="button" id="statusDownloads" class="status-item" data-track="status_downloads" hidden></button>
+      <span id="statusPromo" class="status-promo" hidden>
+        <span class="promo-label">Offer</span>
+        <span id="promoText"></span>
+        <button type="button" id="promoCta" class="btn-small" data-track="promo_cta"></button>
+        <button type="button" id="promoDismiss" class="btn-small promo-dismiss" data-track="promo_dismiss" title="Dismiss">x</button>
+      </span>
+      <span class="status-watch" id="statusWatch">Kevin is watching</span>
+      <button type="button" id="darkModeToggle" class="btn-small" data-track="dark_mode_toggle">Dark Mode</button>
+    </footer>
+  </section>
+
+  <!-- Dialogs and popovers. The page underneath is a screenshot while these are open. -->
+  <div id="modal" class="modal-root" hidden>
+    <div id="privacyDialog" class="dialog privacy-dialog" role="dialog" aria-label="Privacy" hidden>
+      <button type="button" class="dialog-close btn-small" data-close data-track="privacy_close" aria-label="Close">x</button>
+    </div>
+
+    <div id="nagDialog" class="dialog nag-dialog" role="dialog" aria-labelledby="nagTitle" hidden>
+      <img class="dialog-logo" src="logo.png" alt="">
+      <h1 id="nagTitle">Make Southbag Browser your default browser?</h1>
+      <p>Every link, from every app, straight into the loving arms of the Southbag Global Enterprise Network.</p>
+      <p id="nagResult" class="nag-result" hidden></p>
+      <div class="nag-actions">
+        <button type="button" id="nagYes" class="btn-huge" data-track="nag_yes">Yes</button>
+        <button type="button" id="nagNo" class="btn-tiny" data-track="nag_no">no</button>
+      </div>
+      <label class="nag-dont"><input type="checkbox" id="nagDontAsk"> Don't ask again</label>
+    </div>
+
+    <div id="securityPopover" class="dialog popover" role="dialog" aria-label="Site security" hidden>
+      <div id="securityBody"></div>
+      <div class="popover-actions">
+        <button type="button" id="securityReport" class="btn-small" data-track="security_report">Report to Kevin</button>
+        <button type="button" class="btn-small" data-close data-track="security_close">close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

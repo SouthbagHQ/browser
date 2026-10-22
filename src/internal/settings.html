@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings</title>
+  <link rel="icon" href="mark.png">
+  <link rel="stylesheet" href="internal.css">
+</head>
+<body>
+  <header class="page-header">
+    <img src="logo.png" alt="Southbag">
+    <h2>Settings</h2>
+  </header>
+  <main>
+    <h1 class="blurred">Settings</h1>
+    <p class="muted">Changes save immediately. Kevin reviews them later.</p>
+
+    <section class="card">
+      <h2>Your Southbag account</h2>
+      <p id="account"></p>
+      <div class="row">
+        <button type="button" id="logout" class="btn-small" data-track="settings_logout">log out of Southbag</button>
+        <span class="fine-print">Logging out closes every tab in every window and logs you out of every Southbag site.</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Southbag Search</h2>
+      <div class="setting">
+        <label for="engine">Search engine for the address bar and new tab page
+          <small>Southbag Search passes your query straight to this engine. Southbag never sees it. (Kevin might.)</small>
+        </label>
+        <select id="engine"></select>
+      </div>
+      <div class="setting" id="customRow" hidden>
+        <label for="custom">Custom search URL
+          <small>Use %s where the query goes, e.g. https://example.com/search?q=%s</small>
+        </label>
+        <input id="custom" type="url" size="40" placeholder="https://…?q=%s">
+        <button type="button" id="saveCustom" class="btn-small" data-track="save_custom_engine">save</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Default browser</h2>
+      <p id="defaultStatus"></p>
+      <div class="row">
+        <button type="button" id="makeDefault" class="btn-large btn-primary" data-track="make_default">Make Southbag Browser my default browser</button>
+      </div>
+      <div class="setting">
+        <input type="checkbox" id="askDefaultBrowser">
+        <label for="askDefaultBrowser">Ask me on launch if Southbag Browser isn't the default
+          <small>Turn this off and we really will stop asking. We'll just think about it.</small>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Privacy and security</h2>
+      <div class="setting">
+        <input type="checkbox" id="adBlock">
+        <label for="adBlock">Block ads and trackers
+          <small>Blocks requests to a bundled list of advertising and tracking domains. Southbag's own analytics are, coincidentally, not on it.</small>
+        </label>
+      </div>
+      <div class="setting">
+        <input type="checkbox" id="palantir" checked disabled>
+        <label for="palantir">Palantir analytics
+          <small id="palantirNote">Mandatory. Palantir counts what you do (tabs opened, buttons pressed, how long things take) but never URLs, page titles, page content, searches or form data.</small>
+        </label>
+      </div>
+      <div class="setting">
+        <span>Southbag Secure™</span>
+        <label>Open-web warnings
+          <small>Non-Southbag sites show a warning on the first visit per site per session. This cannot be turned off, for your safety and our amusement. Real certificate errors always get a separate, serious warning.</small>
+        </label>
+      </div>
+      <div class="row">
+        <button type="button" id="clearHistory" class="btn-small" data-track="clear_history">clear history</button>
+        <button type="button" id="clearCookies" class="btn-small" data-track="clear_cookies">clear cookies and site data</button>
+        <button type="button" id="clearCache" class="btn-small" data-track="clear_cache">clear cache</button>
+        <span id="clearResult" class="muted"></span>
+      </div>
+      <p class="fine-print">Clearing cookies also logs you out of Southbag sites until you open them again. Your Southbag Browser login stays.</p>
+    </section>
+
+    <section class="card">
+      <h2>Browsing fees</h2>
+      <div class="setting">
+        <input type="checkbox" id="browsingFees">
+        <label for="browsingFees">Charge a browsing fee for each page load
+          <small>One cent per page, billed to your Southbag account through Southbag Online Banking's economy. If the bank is unreachable, fees are tracked here and billed later.</small>
+        </label>
+      </div>
+      <p id="feeSummary" class="muted"></p>
+    </section>
+
+    <section class="card gold">
+      <h2>Southbag Rewards</h2>
+      <p><strong id="points">0</strong> points. You earn one point for every 10 seconds spent on a Southbag site.</p>
+      <div class="row">
+        <button type="button" id="redeem" class="btn-small" data-track="settings_redeem">redeem for nothing</button>
+        <span id="redeemResult" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Appearance</h2>
+      <div class="setting">
+        <input type="checkbox" id="dark">
+        <label for="dark">Dark mode
+          <small>Applies to Southbag Browser itself. Web pages are left exactly as their authors intended, for better or worse.</small>
+        </label>
+      </div>
+      <div class="setting">
+        <input type="checkbox" id="showBookmarksBar">
+        <label for="showBookmarksBar">Show the bookmarks bar</label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Downloads</h2>
+      <p>Files are saved to <code id="downloadsDir"></code>.</p>
+      <div class="setting">
+        <input type="checkbox" id="askDownloadLocation">
+        <label for="askDownloadLocation">Ask where to save each file</label>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">Southbag Global Enterprise Network. Settings may be overridden by Southbag policy at any time.</footer>
+  <script src="internal.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>
