@@ -61,6 +61,7 @@ const shells = new Map();
 const popups = new Set();
 const downloads = [];
 const pendingUrls = [];
+const appWindows = new Map(); // app URL -> BrowserShell; one chrome-less window per site
 const secure = new SecureGate();
 const certs = new CertStore();
 const adblock = new AdBlocker();
@@ -84,6 +85,12 @@ if (!primaryInstance) {
   app.quit();
 } else {
   app.on('second-instance', (_event, argv, workingDirectory) => {
+    const appUrl = system.appFromArgv(argv);
+    if (appUrl) {
+      track('browser_second_instance', { app_mode: true });
+      openAppWindow(appUrl, 'second_instance');
+      return;
+    }
     const urls = system.urlsFromArgv(argv, workingDirectory);
     track('browser_second_instance', { urls: urls.length });
     if (urls.length) openUrls(urls, 'second_instance');
@@ -552,6 +559,7 @@ const ctx = {
   isSignedIn,
   bookmarks: { find: findBookmark },
   createWindow: (options) => createWindow(options),
+  openAppWindow: (url, source) => openAppWindow(url, source),
   launchTerminal: (s) => launchTerminal(s),
   menuAction: (s, action, via) => menuAction(s, action, via),
   openExternalProtocol,
@@ -562,14 +570,31 @@ const ctx = {
   },
 };
 
-function createWindow({ isPrivate = false, urls = [] } = {}) {
+/**
+ * One chrome-less window per site (`--app=`). The OS launcher opens services this way;
+ * re-opening the same URL focuses the existing window instead of duplicating it.
+ */
+function openAppWindow(url, source = 'app_mode') {
+  const existing = appWindows.get(url);
+  if (existing && !existing.window.isDestroyed()) {
+    focus(existing.window);
+    track('browser_app_window_focused', { source });
+    return existing;
+  }
+  track('browser_app_window_opened', { source });
+  const s = createWindow({ appMode: url });
+  appWindows.set(url, s);
+  return s;
+}
+
+function createWindow({ isPrivate = false, urls = [], appMode = null, seedless = false } = {}) {
   const ses = isPrivate ? privateSession() : browsing;
-  const s = new BrowserShell(ctx, { isPrivate, session: ses });
+  const s = new BrowserShell(ctx, { isPrivate, session: ses, appMode });
   shells.set(s.chrome.id, s);
   const win = s.window;
   const windowId = s.id;
   const openedAt = Date.now();
-  track('browser_window_opened', { window_id: windowId, private: isPrivate, open_windows: shells.size });
+  track('browser_window_opened', { window_id: windowId, private: isPrivate, app_mode: Boolean(appMode), open_windows: shells.size });
 
   win.on('focus', () => track('browser_window_focused', { window_id: windowId }));
   win.on('blur', () => track('browser_window_blurred', { window_id: windowId }));
@@ -590,6 +615,7 @@ function createWindow({ isPrivate = false, urls = [] } = {}) {
     });
     s.destroy();
     shells.delete(chromeId);
+    if (appMode) for (const [key, shell] of appWindows) if (shell === s) appWindows.delete(key);
     if (isPrivate) {
       // Incognito*: everything this window's session saw goes. (*Palantir keeps its copy.)
       secure.forget(ses);
@@ -604,8 +630,11 @@ function createWindow({ isPrivate = false, urls = [] } = {}) {
     track('browser_chrome_crashed', { reason: details.reason, exit_code: details.exitCode });
   });
   if (isSignedIn()) {
-    if (urls.length) urls.forEach((url) => s.addTab({ url, source: 'external' }));
-    else s.addTab({ url: NEW_TAB_URL, source: 'auto' });
+    if (appMode) s.addTab({ url: appMode, source: 'external' });
+    else if (urls.length) urls.forEach((url) => s.addTab({ url, source: 'external' }));
+    else if (!seedless) s.addTab({ url: NEW_TAB_URL, source: 'auto' });
+  } else if (appMode) {
+    pendingUrls.push(appMode);
   } else if (urls.length) {
     pendingUrls.push(...urls);
   }
@@ -786,6 +815,8 @@ function menuAction(s, action, via = 'menu') {
   track('browser_menu_action', { action, via });
   if (action === 'new-window') return createWindow();
   if (action === 'new-private-window') return createWindow({ isPrivate: true });
+  // App windows are single-site: "new tab" there means a whole new browser window.
+  if (s?.appMode && action === 'new-tab') return createWindow();
   if (action === 'logout') return requestLogout(s?.window);
   if (action === 'quit') return app.quit();
   if (action === 'default-browser') return system.setDefaultBrowser(app);
@@ -933,6 +964,14 @@ function buildMenu() {
         item('New Tab', 'new-tab', 'CmdOrCtrl+T'),
         item('New Window', 'new-window', 'CmdOrCtrl+N'),
         item('New Incognito* Window', 'new-private-window', 'CmdOrCtrl+Shift+N'),
+        {
+          label: 'Open Current Page in App Window',
+          click: (_menuItem, win) => {
+            const s = (win && shells.get(win.webContents.id)) || lastShell();
+            const url = s && s.activeTab && s.activeTab.wc.getURL();
+            if (url && /^(https?|file):\/\//i.test(url)) openAppWindow(url, 'menu');
+          },
+        },
         item('Reopen Closed Tab', 'reopen-tab', 'CmdOrCtrl+Shift+T'),
         item('Open Location…', 'focus-omnibox', 'CmdOrCtrl+L'),
         { type: 'separator' },
@@ -1581,7 +1620,9 @@ app.whenReady().then(() => {
   registerIpc();
   buildMenu();
   watchSystem();
-  createWindow({ urls: system.urlsFromArgv(process.argv) });
+  const appUrl = system.appFromArgv(process.argv);
+  if (appUrl) openAppWindow(appUrl);
+  else createWindow({ urls: system.urlsFromArgv(process.argv) });
 
   app.on('activate', () => {
     track('browser_app_activated');

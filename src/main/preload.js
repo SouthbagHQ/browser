@@ -7,10 +7,12 @@ function subscribe(channel, callback) {
 }
 
 const isPrivate = process.argv.includes('--southbag-private=1');
+const isAppMode = process.argv.includes('--southbag-app=1');
 
 contextBridge.exposeInMainWorld('southbag', {
   platform: process.platform,
   isPrivate,
+  isAppMode,
 
   auth: {
     state: () => ipcRenderer.invoke('auth:state'),

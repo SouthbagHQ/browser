@@ -29,6 +29,7 @@ A tabbed web browser built on Electron, styled after [Southbag Online Banking](h
 - **Default browser**: registers for `http`, `https` and HTML files, and asks on launch with a big **Yes** and a tiny **no**. "Don't ask again" works.
 - **Privacy** button in the address bar, which opens our privacy dialog. It is blank. That is the policy.
 - **"Kevin is watching"** status bar, and a **dark mode** that works (for the chrome and Southbag's own pages; websites are not restyled).
+- **App windows**: `--app=<url>` opens one site in its own chrome-less window — no tab strip, no omnibox, the page fills the window. This is how Southbag OS launches services: every app is a real top-level window, not an iframe. (See [App windows](#app-windows).)
 
 | | |
 |---|---|
@@ -118,6 +119,16 @@ What's **never** sent: URLs, hostnames, page titles, page content, search querie
 - **Linux**: the `.desktop` file declares `MimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;application/xhtml+xml` and `Categories=Network;WebBrowser;`. Saying Yes runs `app.setAsDefaultProtocolClient` for `http` and `https`, `xdg-settings set default-web-browser southbag-browser.desktop` and `xdg-mime default` for HTML.
 - **macOS**: electron-builder writes `CFBundleURLTypes` (http, https) and `CFBundleDocumentTypes` (HTML) into `Info.plist`; saying Yes asks LaunchServices, and macOS shows its own confirmation.
 - Links arrive through `open-url` / `open-file` (macOS), command-line arguments, and `second-instance` (a single-instance lock keeps one browser running). Links that arrive before you've logged in wait behind the login screen and open afterwards.
+
+## App windows
+
+`southbag-browser --app=https://banking.southbag.cc` opens that one site in a window with no tab strip, no omnibox and no bookmarks bar — the page fills the window, and the window title follows the page. Login, single sign-on, Southbag Secure™, browsing fees, Rewards and the ad blocker all work exactly as in a normal window. What changes is the shape:
+
+- **One window per site**: running `--app=` for a site that already has an app window focuses it instead of opening a duplicate. The single-instance lock applies, so the OS launcher can call it as often as it likes.
+- **Single-site by design**: "new tab" (menu or Ctrl+T) and links that spawn a window open a normal browser window; the right-click menu also offers "Open Link in App Window". A normal window can turn its current page into an app window with **File → Open Current Page in App Window**.
+- While you're logged out, the app window waits behind the same login screen as everything else and opens its site once you're in.
+
+Southbag OS uses this for its launcher: each service is a real top-level window owned by the browser, so sites keep their own cookies, permissions and full-screen behaviour, and nothing is iframed.
 
 ## Installation
 
