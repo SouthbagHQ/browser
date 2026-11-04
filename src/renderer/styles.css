@@ -1193,3 +1193,11 @@ body.dark-mode .blocker-panel.network {
 body.dark-mode .site-footer {
   border-top-color: #263238;
 }
+
+/* App mode (--app=...): chrome-less single-site windows for the OS launcher. The content
+   area is measured from #content, so hiding the chrome lets the page fill the window. */
+body.app-mode .tabstrip,
+body.app-mode .toolbar,
+body.app-mode .bookmarks-bar {
+  display: none;
+}
