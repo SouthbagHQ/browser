@@ -370,8 +370,8 @@ function setupSession(ses, { isPrivate }) {
         .showMessageBox(owner, {
           type: 'info',
           buttons: ['OK'],
-          message: 'Downloads are not available on Southbag OS',
-          detail: 'Files live in Southbag Drive. Open Files to put things there or take them out.',
+          message: 'Local downloads are disabled on Southbag OS',
+          detail: 'Open Files to work with files in Southbag Drive.',
         })
         .catch(() => {});
       return;
