@@ -365,7 +365,9 @@ function setupSession(ses, { isPrivate }) {
     // product never carries the mark and keeps its download manager.
     if (runningOnSouthbagOS()) {
       item.cancel();
-      const owner = BrowserWindow.fromWebContents(contents) || tabsByContents.get(contents.id)?.win.window;
+      const owner = contents
+        ? BrowserWindow.fromWebContents(contents) || tabsByContents.get(contents.id)?.win.window
+        : undefined;
       dialog
         .showMessageBox(owner, {
           type: 'info',
