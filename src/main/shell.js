@@ -255,6 +255,7 @@ class Tab {
     });
     wc.on('page-title-updated', (_event, title) => {
       this.title = title;
+      if (this.win.appMode && !this.win.window.isDestroyed()) this.win.window.setTitle(appTitle(this.win.appMode, title));
       const kind = classify(this.url);
       if (!this.win.isPrivate && (kind === 'web' || kind === 'southbag' || kind === 'file')) {
         this.ctx.store.updateHistoryTitle(this.url, title);
@@ -334,7 +335,9 @@ class Tab {
         action: 'allow',
         outlivesOpener: true,
         createWindow: (options) => {
-          const tab = this.win.addTab({ webContents: options.webContents, activate: !background, after: this, opener: this });
+          // App windows stay single-site: a page spawning a window gets a full browser window.
+          const host = this.win.appMode ? this.win.ctx.createWindow({ seedless: true }) : this.win;
+          const tab = host.addTab({ webContents: options.webContents, activate: !background, after: this, opener: this });
           return tab.wc;
         },
       };
@@ -376,8 +379,15 @@ class Tab {
     const track = (action) => ctx.track('browser_context_menu', { action });
     if (params.linkURL) {
       items.push(
-        { label: 'Open Link in New Tab', click: () => (track('link_new_tab'), this.win.addTab({ url: params.linkURL, activate: false, after: this })) },
-        { label: 'Open Link in New Window', click: () => (track('link_new_window'), ctx.createWindow({ urls: [params.linkURL] })) },
+        ...(this.win.appMode
+          ? [
+              { label: 'Open Link in Browser Window', click: () => (track('link_new_window'), ctx.createWindow({ urls: [params.linkURL] })) },
+              { label: 'Open Link in App Window', click: () => (track('link_app_window'), ctx.openAppWindow(params.linkURL, 'context_menu')) },
+            ]
+          : [
+              { label: 'Open Link in New Tab', click: () => (track('link_new_tab'), this.win.addTab({ url: params.linkURL, activate: false, after: this })) },
+              { label: 'Open Link in New Window', click: () => (track('link_new_window'), ctx.createWindow({ urls: [params.linkURL] })) },
+            ]),
         { label: 'Open Link in Incognito* Window', click: () => (track('link_incognito'), ctx.createWindow({ isPrivate: true, urls: [params.linkURL] })) },
         { label: 'Copy Link Address', click: () => (track('copy_link'), clipboard.writeText(params.linkURL)) },
       );
@@ -454,6 +464,19 @@ class Tab {
   }
 }
 
+/** Window title for an app-mode window: the page's title once known, else the site host. */
+function appTitle(url, pageTitle) {
+  let name = pageTitle;
+  if (!name) {
+    try {
+      name = new URL(url).hostname;
+    } catch {
+      name = 'App';
+    }
+  }
+  return `${name} — Southbag Browser`;
+}
+
 class BrowserShell {
   /**
    * @param {object} ctx  shared services from main.js (store, secure, fees, track, …)
@@ -461,9 +484,10 @@ class BrowserShell {
    * @param {boolean} [options.isPrivate]
    * @param {Electron.Session} options.session
    */
-  constructor(ctx, { isPrivate = false, session: ses }) {
+  constructor(ctx, { isPrivate = false, session: ses, appMode = null }) {
     this.ctx = ctx;
     this.isPrivate = isPrivate;
+    this.appMode = appMode || null;
     this.session = ses;
     this.id = ++nextWindowId;
     this.tabs = [];
@@ -480,7 +504,7 @@ class BrowserShell {
       height: Math.min(860, display.height),
       minWidth: 640,
       minHeight: 420,
-      title: isPrivate ? 'Incognito* — Southbag Browser' : 'Southbag Browser',
+      title: appMode ? appTitle(appMode) : isPrivate ? 'Incognito* — Southbag Browser' : 'Southbag Browser',
       backgroundColor: isPrivate ? '#1b1033' : '#ffffff',
       icon: path.join(__dirname, '../renderer/icon.png'),
       titleBarStyle: IS_MAC ? 'hiddenInset' : 'default',
@@ -492,7 +516,7 @@ class BrowserShell {
         nodeIntegration: false,
         sandbox: true,
         spellcheck: false,
-        additionalArguments: [`--southbag-private=${isPrivate ? 1 : 0}`],
+        additionalArguments: [`--southbag-private=${isPrivate ? 1 : 0}`, `--southbag-app=${appMode ? 1 : 0}`],
       },
     });
     this.chrome = this.window.webContents;
