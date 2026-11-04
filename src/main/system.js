@@ -109,6 +109,30 @@ async function setDefaultBrowser(app) {
   return { ok: http && https, isDefault: isDefaultBrowser(app) };
 }
 
+/**
+ * `--app=<url>` (or `--app <url>`) opens one site in a chrome-less app window: no tab strip,
+ * no omnibox, one site per window. The Southbag OS launcher uses these so each service is its
+ * own top-level window. Only http(s)/file URLs qualify.
+ */
+function appFromArgv(argv) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    let url = null;
+    if (arg === '--app') {
+      const next = argv[i + 1];
+      if (next && !next.startsWith('-')) url = next;
+    } else if (arg.startsWith('--app=')) {
+      url = arg.slice('--app='.length);
+    } else {
+      continue;
+    }
+    if (!url) return null;
+    url = url.trim();
+    return /^(https?|file):\/\//i.test(url) ? url : null;
+  }
+  return null;
+}
+
 /** URLs and HTML files we were asked to open on the command line (default-browser launches). */
 function urlsFromArgv(argv, cwd = process.cwd()) {
   const urls = [];
@@ -128,4 +152,12 @@ function urlsFromArgv(argv, cwd = process.cwd()) {
   return urls;
 }
 
-module.exports = { findTerminal, launchTerminal, isDefaultBrowser, setDefaultBrowser, urlsFromArgv, TERMINAL_RELEASES };
+module.exports = {
+  findTerminal,
+  launchTerminal,
+  isDefaultBrowser,
+  setDefaultBrowser,
+  urlsFromArgv,
+  appFromArgv,
+  TERMINAL_RELEASES,
+};
