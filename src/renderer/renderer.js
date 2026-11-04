@@ -12,6 +12,9 @@ if (api.isPrivate) {
   $('statusWatch').title = 'Incognito*: history and cookies are forgotten when this window closes. *Kevin can still see you.';
 }
 
+// App mode (--app=...): one site fills the window; the tab strip, toolbar and bookmarks hide.
+if (api.isAppMode) document.body.classList.add('app-mode');
+
 // ---------------------------------------------------------------------------
 // Analytics for the chrome: which button, never what it was about.
 // ---------------------------------------------------------------------------
