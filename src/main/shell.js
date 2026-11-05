@@ -521,8 +521,14 @@ class BrowserShell {
     });
     this.chrome = this.window.webContents;
     this.chrome.setVisualZoomLevelLimits(1, 1);
+    // Some Wayland compositors do not paint an initially hidden window,
+    // so ready-to-show alone can leave a fully loaded browser invisible.
+    const showLoadedWindow = () => {
+      if (!this.window.isDestroyed() && !this.window.isVisible()) this.window.show();
+    };
+    this.window.once('ready-to-show', showLoadedWindow);
+    this.chrome.once('did-finish-load', showLoadedWindow);
     this.window.loadFile(path.join(__dirname, '../renderer/index.html'));
-    this.window.once('ready-to-show', () => this.window.show());
 
     // The chrome is a local app; never let it navigate anywhere or spawn windows.
     this.chrome.on('will-navigate', (event) => event.preventDefault());
