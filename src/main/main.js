@@ -18,6 +18,7 @@ const { palantir } = require('./palantir');
 const { SouthbagAuth, ISSUER } = require('./auth');
 const { Store, SEARCH_ENGINES } = require('./store');
 const { AdBlocker } = require('./adblock');
+const { runningOnSouthbagOS } = require('./download-policy');
 const { Banking, FeeMeter, BANKING_URL } = require('./banking');
 const { SecureGate, CertStore } = require('./secure');
 const { BrowserShell, tabsByContents, NEW_TAB_URL } = require('./shell');
@@ -358,7 +359,27 @@ function setupSession(ses, { isPrivate }) {
     callback({});
   });
 
-  ses.on('will-download', (_event, item, contents) => trackDownload(item, contents, isPrivate));
+  ses.on('will-download', (_event, item, contents) => {
+    // Southbag OS gives the customer no local file storage: files live in
+    // Southbag Drive, so a download has nowhere to go. The standalone
+    // product never carries the mark and keeps its download manager.
+    if (runningOnSouthbagOS()) {
+      item.cancel();
+      const owner = contents
+        ? BrowserWindow.fromWebContents(contents) || tabsByContents.get(contents.id)?.win.window
+        : undefined;
+      dialog
+        .showMessageBox(owner, {
+          type: 'info',
+          buttons: ['OK'],
+          message: 'Local downloads are disabled on Southbag OS',
+          detail: 'Open Files to work with files in Southbag Drive.',
+        })
+        .catch(() => {});
+      return;
+    }
+    trackDownload(item, contents, isPrivate);
+  });
 
   ses.setPermissionRequestHandler((contents, permission, callback, details) => {
     if (ALWAYS_ALLOWED.has(permission)) return callback(true);
