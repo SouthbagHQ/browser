@@ -19,6 +19,8 @@ const { SouthbagAuth, ISSUER } = require('./auth');
 const { Store, SEARCH_ENGINES } = require('./store');
 const { AdBlocker } = require('./adblock');
 const { runningOnSouthbagOS } = require('./download-policy');
+const { Drive, DRIVE_URL } = require('./drive');
+const driveDownload = require('./drive-download');
 const { Banking, FeeMeter, BANKING_URL } = require('./banking');
 const { SecureGate, CertStore } = require('./secure');
 const { BrowserShell, tabsByContents, NEW_TAB_URL } = require('./shell');
@@ -45,6 +47,7 @@ protocol.registerSchemesAsPrivileged([
 let auth;
 let store;
 let banking;
+let drive;
 let fees;
 let browsing;
 /** 'unknown' until the saved session has been checked, then 'signed-in' | 'signed-out' | 'offline'. */
@@ -361,21 +364,10 @@ function setupSession(ses, { isPrivate }) {
 
   ses.on('will-download', (_event, item, contents) => {
     // Southbag OS gives the customer no local file storage: files live in
-    // Southbag Drive, so a download has nowhere to go. The standalone
-    // product never carries the mark and keeps its download manager.
+    // Southbag Drive, so downloads are handed to Drive instead of disk. The
+    // standalone product never carries the mark and keeps its download manager.
     if (runningOnSouthbagOS()) {
-      item.cancel();
-      const owner = contents
-        ? BrowserWindow.fromWebContents(contents) || tabsByContents.get(contents.id)?.win.window
-        : undefined;
-      dialog
-        .showMessageBox(owner, {
-          type: 'info',
-          buttons: ['OK'],
-          message: 'Local downloads are disabled on Southbag OS',
-          detail: 'Open Files to work with files in Southbag Drive.',
-        })
-        .catch(() => {});
+      trackDriveDownload(item, contents, isPrivate);
       return;
     }
     trackDownload(item, contents, isPrivate);
@@ -497,8 +489,116 @@ function trackDownload(item, contents, isPrivate) {
   owner?.send('downloads:started', record.id);
 }
 
+// Drive-first downloads (Southbag OS): the bytes land in a temp file, are
+// handed to Southbag Drive, and the temp file is removed. There is no local
+// copy to open afterwards - the file lives in Drive.
+function trackDriveDownload(item, contents, isPrivate) {
+  const owner = contents
+    ? BrowserWindow.fromWebContents(contents) || tabsByContents.get(contents.id)?.win.window
+    : undefined;
+
+  const refusal = driveDownload.refusalForSize(item.getTotalBytes());
+  if (refusal) {
+    item.cancel();
+    track('browser_download_drive_refused', { reason: 'too_large', total_bytes: item.getTotalBytes() });
+    dialog.showMessageBox(owner, { type: 'info', buttons: ['OK'], ...refusal }).catch(() => {});
+    return;
+  }
+
+  const record = {
+    id: ++downloadId,
+    filename: item.getFilename(),
+    contentType: item.getMimeType() || null,
+    totalBytes: item.getTotalBytes(),
+    receivedBytes: 0,
+    state: 'progressing',
+    paused: false,
+    startedAt: Date.now(),
+    savePath: null,
+    isPrivate,
+    drive: true,
+    driveFile: null,
+    error: null,
+    item,
+  };
+  const tempDir = path.join(app.getPath('temp'), 'southbag-downloads');
+  try {
+    fs.mkdirSync(tempDir, { recursive: true });
+  } catch {}
+  item.setSavePath(driveDownload.tempPath(tempDir, record.filename));
+  downloads.unshift(record);
+  if (downloads.length > 200) downloads.length = 200;
+  track('browser_download_started', { total_bytes: record.totalBytes || null, private: isPrivate, drive: true });
+  let last = 0;
+  item.on('updated', (_event, state) => {
+    record.state = state;
+    record.receivedBytes = item.getReceivedBytes();
+    record.totalBytes = item.getTotalBytes();
+    record.paused = item.isPaused();
+    record.savePath = item.getSavePath() || record.savePath;
+    record.filename = path.basename(record.savePath || record.filename);
+    if (Date.now() - last > 250) {
+      last = Date.now();
+      broadcastDownloads();
+    }
+  });
+  item.once('done', (_event, state) => {
+    record.receivedBytes = item.getReceivedBytes();
+    record.savePath = item.getSavePath() || record.savePath;
+    record.filename = path.basename(record.savePath || record.filename);
+    record.finishedAt = Date.now();
+    if (state !== 'completed') {
+      record.state = state;
+      driveDownload.discardTemp(record.savePath, record);
+      track('browser_download_finished', {
+        state,
+        bytes: record.receivedBytes,
+        duration_ms: record.finishedAt - record.startedAt,
+        private: isPrivate,
+        drive: true,
+      });
+      broadcastDownloads();
+      return;
+    }
+    if (!record.receivedBytes) {
+      record.state = 'failed';
+      record.error = 'Empty files cannot be uploaded to Southbag Drive.';
+      driveDownload.discardTemp(record.savePath, record);
+      broadcastDownloads();
+      return;
+    }
+    // 'uploading' is not an Electron state: it is the temp-to-Drive leg, shown
+    // in the downloads list so a quiet network does not look like a lost file.
+    record.state = 'uploading';
+    broadcastDownloads();
+    driveDownload
+      .uploadFinishedDownload({
+        drive,
+        record,
+        savePath: record.savePath,
+        track,
+        onChange: () => broadcastDownloads(),
+      })
+      .then((ok) => {
+        if (!ok && record.error) {
+          dialog
+            .showMessageBox(owner, {
+              type: 'warning',
+              buttons: ['OK'],
+              message: `Could not save ${record.filename} to Southbag Drive`,
+              detail: `${record.error} The file was not saved anywhere - Southbag OS has no local storage, by design.`,
+            })
+            .catch(() => {});
+        }
+      });
+  });
+  broadcastDownloads();
+  const ownerShell = tabsByContents.get(contents?.id)?.win;
+  ownerShell?.send('downloads:started', record.id);
+}
+
 function downloadsSummary() {
-  const active = downloads.filter((d) => d.state === 'progressing');
+  const active = downloads.filter((d) => d.state === 'progressing' || d.state === 'uploading');
   const total = active.reduce((sum, d) => sum + (d.totalBytes || 0), 0);
   const received = active.reduce((sum, d) => sum + d.receivedBytes, 0);
   const latest = downloads[0];
@@ -643,7 +743,8 @@ function createWindow({ isPrivate = false, urls = [], appMode = null, seedless =
       ses.clearStorageData().catch(() => {});
       ses.clearCache().catch(() => {});
       for (let i = downloads.length - 1; i >= 0; i -= 1) {
-        if (downloads[i].isPrivate && downloads[i].state !== 'progressing') downloads.splice(i, 1);
+        if (downloads[i].isPrivate && downloads[i].state !== 'progressing' && downloads[i].state !== 'uploading')
+          downloads.splice(i, 1);
       }
     }
   });
@@ -1463,6 +1564,8 @@ function registerIpc() {
       banking: BANKING_URL,
       palantir: palantir.enabled,
       downloadsDir: app.getPath('downloads'),
+      driveFirst: runningOnSouthbagOS(),
+      drive: DRIVE_URL,
       isDefault: system.isDefaultBrowser(app),
     }),
     account: async () => {
@@ -1499,11 +1602,17 @@ function registerIpc() {
     'downloads:list': () => downloads.map(downloadState),
     'downloads:open': (_tab, id) => {
       const record = downloads.find((d) => d.id === id);
-      if (record?.savePath && record.state === 'completed') shell.openPath(record.savePath);
+      if (!record || record.drive) return;
+      if (record.savePath && record.state === 'completed') shell.openPath(record.savePath);
     },
     'downloads:show': (_tab, id) => {
       const record = downloads.find((d) => d.id === id);
-      if (record?.savePath) shell.showItemInFolder(record.savePath);
+      if (!record || record.drive) return;
+      if (record.savePath) shell.showItemInFolder(record.savePath);
+    },
+    'downloads:open-drive': (tab, id) => {
+      const record = downloads.find((d) => d.id === id);
+      if (record?.drive && record.state === 'completed') tab.navigate(`${DRIVE_URL}/files`);
     },
     'downloads:cancel': (_tab, id) => downloads.find((d) => d.id === id)?.item.cancel(),
     'downloads:pause': (_tab, id) => {
@@ -1513,7 +1622,8 @@ function registerIpc() {
       else record.item.pause();
     },
     'downloads:clear': () => {
-      for (let i = downloads.length - 1; i >= 0; i -= 1) if (downloads[i].state !== 'progressing') downloads.splice(i, 1);
+      for (let i = downloads.length - 1; i >= 0; i -= 1)
+        if (downloads[i].state !== 'progressing' && downloads[i].state !== 'uploading') downloads.splice(i, 1);
       broadcastDownloads();
     },
     'rewards:get': () => store.rewards.data,
@@ -1621,12 +1731,17 @@ app.whenReady().then(() => {
   app.userAgentFallback = userAgentFor(session.defaultSession);
 
   auth = new SouthbagAuth({ dataDir, safeStorage, openExternal: openLoginWindow, track });
+  const freshToken = async () => {
+    if (!isSignedIn()) return null;
+    await auth.ensureFresh();
+    return auth.session?.accessToken ?? null;
+  };
   banking = new Banking({
-    token: async () => {
-      if (!isSignedIn()) return null;
-      await auth.ensureFresh();
-      return auth.session?.accessToken ?? null;
-    },
+    token: freshToken,
+    refresh: () => auth.refresh(),
+  });
+  drive = new Drive({
+    token: freshToken,
     refresh: () => auth.refresh(),
   });
   fees = new FeeMeter({

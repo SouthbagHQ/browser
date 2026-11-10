@@ -130,6 +130,10 @@ What's **never** sent: URLs, hostnames, page titles, page content, search querie
 
 Southbag OS uses this for its launcher: each service is a real top-level window owned by the browser, so sites keep their own cookies, permissions and full-screen behaviour, and nothing is iframed.
 
+### Downloads on Southbag OS
+
+When the OS marks the browser with `SOUTHBAG_OS=1`, downloads are **Drive-first**: there is no local file storage on Southbag OS, so the bytes pass through a temp file into the customer's [Southbag Drive](https://drive.southbag.cc) and nothing stays on disk. A file bigger than the whole 71.1-floppy-disk quota is refused before it starts; an upload that fails (full Drive, expired session) says so, honestly, and saves nothing. The downloads page (`southbag://downloads`) shows the whole journey and offers to open Drive when it's done. The standalone desktop product keeps its ordinary download manager.
+
 ## Installation
 
 Download a build for your platform from [Releases](https://github.com/SouthbagHQ/browser/releases).

@@ -3,8 +3,11 @@
 function describe(d) {
   const size = d.totalBytes ? `${formatBytes(d.receivedBytes)} of ${formatBytes(d.totalBytes)}` : formatBytes(d.receivedBytes);
   if (d.state === 'progressing') return `${d.paused ? 'Paused' : 'Downloading'}: ${size}`;
+  if (d.state === 'uploading') return `Handing to Southbag Drive: ${size}`;
+  if (d.state === 'completed' && d.drive) return `Saved to Southbag Drive. ${formatBytes(d.driveFile?.size ?? d.receivedBytes)}. Kevin has scanned it (He has not).`;
   if (d.state === 'completed') return `Done. ${formatBytes(d.receivedBytes)}. Kevin has scanned it (he has not).`;
   if (d.state === 'cancelled') return 'Cancelled.';
+  if (d.error) return `Failed: ${d.error}`;
   return 'Failed. Have you tried a branch?';
 }
 
@@ -20,8 +23,8 @@ function render(list) {
         d.isPrivate ? el('span', { class: 'badge', text: 'Incognito*' }) : null,
         el('br'),
         el('span', { class: 'muted', text: describe(d) }),
-        d.state === 'progressing'
-          ? el('div', { class: 'progress' }, el('div', { style: `width:${percent ?? 5}%` }))
+        d.state === 'progressing' || d.state === 'uploading'
+          ? el('div', { class: 'progress' }, el('div', { style: `width:${d.state === 'uploading' ? 100 : (percent ?? 5)}%` }))
           : null,
       );
       const button = (label, method, track) =>
@@ -29,9 +32,11 @@ function render(list) {
       const actions =
         d.state === 'progressing'
           ? [button(d.paused ? 'resume' : 'pause', 'downloads:pause', 'download_pause'), button('cancel', 'downloads:cancel', 'download_cancel')]
-          : d.state === 'completed'
-            ? [button('open', 'downloads:open', 'download_open'), button('show in folder', 'downloads:show', 'download_show')]
-            : [];
+          : d.state === 'completed' && d.drive
+            ? [button('open in Drive', 'downloads:open-drive', 'download_open_drive')]
+            : d.state === 'completed'
+              ? [button('open', 'downloads:open', 'download_open'), button('show in folder', 'downloads:show', 'download_show')]
+              : [];
       return el('li', {}, info, ...actions);
     }),
   );
@@ -39,7 +44,7 @@ function render(list) {
 
 async function main() {
   const info = await initPage('downloads');
-  $('where').textContent = `Saved to ${info.downloadsDir}`;
+  $('where').textContent = info.driveFirst ? 'Saved to Southbag Drive. There is no local copy.' : `Saved to ${info.downloadsDir}`;
   render(await call('downloads:list'));
   sb.on('downloads', render);
   $('clear').addEventListener('click', () => call('downloads:clear'));
