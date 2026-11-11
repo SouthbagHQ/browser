@@ -51,6 +51,9 @@ const identity = http.createServer(async (req, res) => {
         return json(200, { sub: 'user-1', email: 'kevin@southbag.cc', name: 'Kevin' });
       }
       return json(401, {});
+    case '/api/auth/get-session':
+      return req.headers.cookie === '__Secure-better-auth.session_token=valid-cookie'
+        ? json(200, {user:{id:'user-1'},session:{userId:'user-1'}}) : json(200, null);
     case '/api/auth/oauth2/revoke':
       return json(200, {});
     default:
@@ -131,4 +134,16 @@ test('login can be cancelled', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'auth-'));
   const auth = new SouthbagAuth({ dataDir, openExternal: async () => setImmediate(() => auth.cancelLogin()) });
   await assert.rejects(auth.login(), { code: 'cancelled' });
+});
+
+
+test('OS cookie verification requires the cookie and OAuth token to name the same live account',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'device-cookie-'));
+ try {
+  const auth=newAuth(dir);
+  const cookie=[{name:'__Secure-better-auth.session_token',value:'valid-cookie'}];
+  await auth.verifyDeviceCookie(cookie,'user-1');
+  await assert.rejects(auth.verifyDeviceCookie(cookie,'other-user'),/does not match/);
+  await assert.rejects(auth.verifyDeviceCookie([{...cookie[0],value:'invalid-cookie'}],'user-1'),/does not match/);
+ } finally {fs.rmSync(dir,{recursive:true,force:true});}
 });

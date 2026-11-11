@@ -200,3 +200,13 @@ Push a tag like `v1.1.0`. The [release workflow](.github/workflows/release.yml) 
 ## License
 
 Released into the public domain (Unlicense). No warranty is provided.
+
+### OS-managed sign-in
+
+On Southbag OS, Browser 1.1.1 can adopt the device's completed sign-in. The private
+handoff is bound to the device generation and short-lived token, independently
+checked against Identity userinfo, and limited to Identity's secure HttpOnly
+session cookie. It does not request more OAuth scopes or repeat Browser consent.
+Use the OS shell to sign out or renew an expired device session. Standalone
+Browser's own OAuth login is unchanged. Southbag services retain their own
+first-use consent checks.
