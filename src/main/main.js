@@ -220,7 +220,9 @@ async function forgetSouthbagCookies() {
 
 async function restoreSession() {
   try {
-    const user = await auth.restore();
+    const user = process.env.SOUTHBAG_OS === '1' && process.env.SOUTHBAG_DEVICE_GENERATION
+      ? await require('./device-session').adoptDeviceSession({ auth, browsing, dataDir: app.getPath('userData'), generation: process.env.SOUTHBAG_DEVICE_GENERATION })
+      : await auth.restore();
     if (user) setSignedIn(user);
     else {
       authStatus = 'signed-out';
@@ -1257,6 +1259,13 @@ function tabMenu(s, tab) {
 
 async function requestLogout(win) {
   if (authStatus !== 'signed-in') return false;
+  if (process.env.SOUTHBAG_OS === '1' && process.env.SOUTHBAG_DEVICE_GENERATION) {
+    await dialog.showMessageBox(win || BrowserWindow.getFocusedWindow(), {
+      type: 'info', buttons: ['OK'], message: 'This Browser uses your Southbag OS sign-in.',
+      detail: 'Use Sign out in the OS shell to close every app and end this device session.',
+    });
+    return false;
+  }
   const { response } = await dialog.showMessageBox(win || BrowserWindow.getFocusedWindow(), {
     type: 'warning',
     buttons: ['Log Out', 'Stay Logged In'],

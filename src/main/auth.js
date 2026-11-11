@@ -173,6 +173,9 @@ class SouthbagAuth {
 
   /** Full browser sign-in. Resolves with the Identity user. */
   async login() {
+    if (process.env.SOUTHBAG_OS === '1' && process.env.SOUTHBAG_DEVICE_GENERATION) {
+      throw new AuthError('Sign out and sign in to Southbag OS to renew this device session.', 'device_session');
+    }
     if (this.pending) {
       if (this.pending.url) await this.openExternal(this.pending.url);
       return this.pending.promise;
@@ -413,7 +416,7 @@ class SouthbagAuth {
   }
 
   persist() {
-    if (this.session) this.store.write('session.json', this.session, { secret: true });
+    if (this.session && !this.session.deviceGeneration) this.store.write('session.json', this.session, { secret: true });
   }
 
   clear() {
