@@ -173,7 +173,7 @@ class SouthbagAuth {
 
   /** Full browser sign-in. Resolves with the Identity user. */
   async login() {
-    if (process.env.SOUTHBAG_OS === '1' && process.env.SOUTHBAG_DEVICE_GENERATION) {
+    if (process.env.SOUTHBAG_OS === '1') {
       throw new AuthError('Sign out and sign in to Southbag OS to renew this device session.', 'device_session');
     }
     if (this.pending) {
