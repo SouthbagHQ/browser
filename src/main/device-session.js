@@ -5,6 +5,8 @@ const path = require('node:path');
 function readDeviceSession({ dataDir, generation, now = Date.now() }) {
   if (!generation) throw new Error('The OS session generation is missing.');
   const root = path.dirname(dataDir);
+  const rootStat = fs.lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.uid !== process.getuid() || (rootStat.mode & 0o077)) throw new Error('The OS session root is not private.');
   const privateRead = (name) => {
     const file = path.join(root, name);
     const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
@@ -32,9 +34,10 @@ function readDeviceSession({ dataDir, generation, now = Date.now() }) {
     if (!['southbag.cc', '.southbag.cc', 'identity.southbag.cc'].includes(cookie.domain) ||
         !['__Secure-better-auth.session_token', 'better-auth.session_token'].includes(cookie.name) ||
         cookie.path !== '/' || cookie.secure !== true || cookie.httpOnly !== true ||
-        typeof cookie.value !== 'string' || !cookie.value || cookie.value.length > 8192) {
+        typeof cookie.value !== 'string' || !cookie.value || cookie.value.length > 8192 || /[\x00-\x20\x7f;,]/.test(cookie.value)) {
       throw new Error('The OS Identity cookie handoff is invalid.');
     }
+    if (cookie.expirationDate !== undefined && (!Number.isFinite(cookie.expirationDate) || cookie.expirationDate <= now / 1000)) throw new Error('The OS Identity cookie has expired.');
     const item = { url: 'https://identity.southbag.cc/', name: cookie.name, value: cookie.value,
       domain: cookie.domain, path: '/', secure: true, httpOnly: true, sameSite: 'lax' };
     if (Number.isFinite(cookie.expirationDate) && cookie.expirationDate > now / 1000) item.expirationDate = cookie.expirationDate;
@@ -51,6 +54,7 @@ async function adoptDeviceSession({ auth, browsing, dataDir, generation }) {
   try {
     const user = await auth.fetchUser();
     if (user.sub !== candidate.subject) throw new Error('The OS account changed during sign-in.');
+    await auth.verifyDeviceCookie(candidate.cookies, user.sub);
     // Recheck the era after network I/O, before publishing any cookies or user.
     const current = readDeviceSession({ dataDir, generation });
     if (current.accessToken !== candidate.accessToken || current.subject !== candidate.subject) throw new Error('The OS account changed during sign-in.');

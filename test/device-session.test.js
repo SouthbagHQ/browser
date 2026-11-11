@@ -34,12 +34,15 @@ test('rejects symlink handoffs and retired generation',()=>{
 });
 test('adoption independently verifies userinfo before installing cookies; no second OAuth',async()=>{
  const f=fixture();try{
-  const seen=[];const auth={session:null,async fetchUser(){seen.push('userinfo');assert.equal(this.session.accessToken,token);return {sub:'user-1'};}};
+  const seen=[];const auth={session:null,async verifyDeviceCookie(cookies,subject){seen.push('cookie-userinfo');assert.equal(subject,'user-1');assert.equal(cookies[0].value,'cookie-secret');},async fetchUser(){seen.push('userinfo');assert.equal(this.session.accessToken,token);return {sub:'user-1'};}};
   const browsing={cookies:{async set(c){seen.push('cookie');assert.equal(c.domain,'.southbag.cc');},async flushStore(){seen.push('flush');},async remove(){seen.push('remove');}}};
   assert.equal((await adoptDeviceSession({...f.options,auth,browsing})).sub,'user-1');
-  assert.deepEqual(seen,['userinfo','cookie','flush']);assert.equal(auth.session.deviceGeneration,'era-1');
+  assert.deepEqual(seen,['userinfo','cookie-userinfo','cookie','flush']);assert.equal(auth.session.deviceGeneration,'era-1');
   seen.length=0;auth.fetchUser=async()=>({sub:'different'});
   await assert.rejects(adoptDeviceSession({...f.options,auth,browsing}),/account changed/);assert.equal(auth.session,null);assert.ok(!seen.includes('cookie'));
+  auth.fetchUser=async()=>({sub:'user-1'});auth.verifyDeviceCookie=async()=>{throw new Error('cookie subject mismatch');};
+  await assert.rejects(adoptDeviceSession({...f.options,auth,browsing}),/cookie subject mismatch/);assert.equal(auth.session,null);assert.ok(!seen.includes('cookie'));
+  auth.verifyDeviceCookie=async()=>{};
   auth.fetchUser=async()=>{fs.writeFileSync(path.join(f.root,'generation'),'retired');return {sub:'user-1'};};
   await assert.rejects(adoptDeviceSession({...f.options,auth,browsing}),/retired/);assert.equal(auth.session,null);
  }finally{fs.rmSync(f.root,{recursive:true,force:true});}

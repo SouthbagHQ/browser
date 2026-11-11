@@ -381,6 +381,21 @@ class SouthbagAuth {
     return { sub, email: email || null, name: name || null, picture: picture || null };
   }
 
+  /** Bind the transferred web cookie to the same independently verified user. */
+  async verifyDeviceCookie(cookies, subject) {
+    let result;
+    try {
+      result = await requestJson(`${ISSUER}/api/auth/get-session`, {
+        headers: { cookie: cookies.map(({ name, value }) => `${name}=${value}`).join('; ') },
+      });
+    } catch {
+      throw new AuthError('Could not verify the OS Identity cookie.', 'network');
+    }
+    if (!result.ok || result.body?.user?.id !== subject || result.body?.session?.userId !== subject) {
+      throw new AuthError('The OS Identity cookie does not match this account.', 'device_session');
+    }
+  }
+
   /** Keeps the session alive while the app runs; returns false once Identity rejects us. */
   async ensureFresh() {
     if (!this.session) return false;
